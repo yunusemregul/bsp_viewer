@@ -79,6 +79,11 @@ struct Vector
 		);
 	}
 
+	// for debugging purposes
+	void tostring(char *str)
+	{
+		sprintf(str,"Vector(%.2f, %.2f, %.2f)", x, y, z);
+	}
 };
 
 struct dplane_t

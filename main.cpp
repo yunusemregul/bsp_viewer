@@ -1,3 +1,8 @@
+/*
+	notes:
+		* displacements does not work as expected, having problems with rotation and scale	
+*/
+
 #include <main.h>
 
 template <class T>
@@ -221,7 +226,7 @@ int main(int argc, char *argv[])
 		//for(int i=0; i<1; i++)	
 		{
 			vector<GLfloat> facetris;
-		
+
 			if(map.faces[i].dispinfo!=-1)
 			{
 				dplane_t plane = map.planes[map.faces[i].planenum];
@@ -230,22 +235,64 @@ int main(int argc, char *argv[])
 
 				ddispinfo_t dinfo = map.dispinfos[map.faces[i].dispinfo];
 				
-				int surfedge = map.surfedges[map.faces[i].firstedge];
+				// surfedges array
+				int *surfedges = &map.surfedges[map.faces[i].firstedge];
 
-				/*float xlen = map.vertexes[map.edges[surfedge<0 ? -surfedge : surfedge].v[0]].x-map.vertexes[map.edges[surfedge<0 ? -surfedge : surfedge].v[1]].x;
-				xlen = xlen<0 ? -xlen : xlen;*/
+				float xlen;
+				float ylen;
+
+				// ind = 0, x stable
+				// ind = 1, y stable
+				for(int ind=0;ind<2;ind++)
+				{
+					for(int ind2=0;ind2<2;ind2++)
+					{
+						Vector v = map.vertexes[map.edges[abs(surfedges[ind])].v[ind2]];
+
+						if(ind==0)
+						{
+							if(ind2==0)
+							{
+								ylen = v.y;
+							}
+							else
+							{
+								ylen = abs(v.y-ylen);
+							}
+						}
+						else
+						{
+							if(ind2==0)
+							{
+								xlen = v.x;
+							}
+							else
+							{
+								xlen = abs(v.x-xlen);
+							}	
+						}
+					}
+				}
 
 				float len = sqrt(map.faces[i].area);
+				xlen = xlen==0 ? len : xlen;
+				ylen = ylen==0 ? len : ylen;
 				
 				int num = (pow(2,dinfo.power)+1);
+				
+				// y?
 				for(int j=0; j<num; j++)
 				{
+					// x?
 					for(int k=0; k<num; k++)
 					{
 						dDispVert vert = map.dispverts[dinfo.DispVertStart+j*num+k];
 
-						Vector start(k*len/num, j*len/num, 0);
-						Vector end(k*len/num, j*len/num,(vert.dist+1)/map.scale*vert.vec.z);
+						char buf[32];
+						vert.vec.tostring(buf);
+
+						Vector start(k*xlen/num, j*ylen/num, 0);
+						Vector end(k*xlen/num+(vert.dist+1)/map.scale*vert.vec.x, j*ylen/num+(vert.dist+1)/map.scale*vert.vec.y,(vert.dist+1)/map.scale*vert.vec.z);
 						start = end-Vector(0,0,.05);
 
 						start = start + dinfo.startPosition;
@@ -271,7 +318,7 @@ int main(int argc, char *argv[])
 				int edge = map.surfedges[map.faces[i].firstedge+i2];
 
 				int vert;
-				vert = map.edges[edge<0 ? -edge : edge].v[edge<0 ? 1 : 0];
+				vert = map.edges[abs(edge)].v[edge<0 ? 1 : 0];
 				if(i2>2)
 				{
 					// insert 
@@ -430,7 +477,7 @@ int main(int argc, char *argv[])
 			glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 			glUniform4f(ColorID, Color.x, Color.y, Color.z, Color.w);
 
-			// 1rst attribute buffer : vertices
+			// faces
 			glEnableVertexAttribArray(0);
 				glBindBuffer(GL_ARRAY_BUFFER, mapvertexbuffer);
 				
@@ -446,7 +493,7 @@ int main(int argc, char *argv[])
 				glDrawArrays(GL_TRIANGLES, 0, vbuffersize/3);
 			glDisableVertexAttribArray(0);
 
-			// 1rst attribute buffer : vertices
+			// wireframe
 			glEnableVertexAttribArray(0);
 				glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
 				
