@@ -1,9 +1,9 @@
 # bsp_viewer
-it consists of my experiences with BSP file format and OpenGL, has no goal of releasing something useable for public
+It consists of my experiences with BSP file format and OpenGL 4, has no goal of releasing something useable for public.
 
 ![sample screenshot](https://i.ibb.co/wRmBnQF/image.png)
 
-## sources
+## Sources
 * understanding the BSP file format
   * https://developer.valvesoftware.com/wiki/Source_BSP_File_Format
 * camera controller and base OpenGL code
