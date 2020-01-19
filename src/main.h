@@ -1,4 +1,8 @@
 #include <iostream>
+#include <string>
+#include <stdlib.h>
+#include <string.h>
+#include <vector>
 #include <fstream>
 #include <time.h>
 
@@ -15,13 +19,12 @@
 	#include <glm/gtc/matrix_transform.hpp>
 	using namespace glm;
 
-	#include <shaders/shader.cpp>
-	#include <controls.cpp>
+	#include "controls.cpp"
 //
 
 // BSP
-	#include <sourcesdk/bsp.h>
-	#include <sourcesdk/lump.h>
+	#include "sourcesdk/bsp.h"
+	#include "sourcesdk/lump.h"
 
 	#define MAX_MAP_VERTS 65536
 	#define MAX_MAP_PLANES 65536
@@ -38,6 +41,9 @@ using std::cerr;
 
 using std::pow;
 using std::sqrt;
+
+using std::vector;
+using std::ios;
 
 // The struct that will hold the Map data
 struct Map{
@@ -65,3 +71,29 @@ struct Map{
 	void loadLumps();
 	void rescale();
 };
+
+const char *vertexShader = R"(
+#version 330 core
+layout(location = 0) in vec3 vertexPosition_modelspace;
+
+in vec4 vertexColor;
+out vec4 color;
+
+uniform mat4 MVP;
+
+void main()
+{
+	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
+	color = vertexColor;
+}
+)";
+
+const char *fragmentShader = R"(
+#version 330 core
+in vec4 color;
+
+void main()
+{ 
+	gl_FragColor = color;
+}
+)";

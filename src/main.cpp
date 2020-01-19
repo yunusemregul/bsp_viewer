@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //We don't want the old OpenGL 
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "bsp-viewer", NULL, NULL);
+	window = glfwCreateWindow(1024, 768, "bsp-viewer", NULL, NULL);
 	if( window == NULL )
 	{
 		cerr << "Failed to create GLFW window!" << endl;
@@ -121,16 +121,33 @@ int main(int argc, char *argv[])
 	// Accept fragment if it closer to the camera than the former one
 	glDepthFunc(GL_LESS);
 
+	// backface culling
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW); 
+
 	GLuint vertexArrayID;
 	glGenVertexArrays(1, &vertexArrayID);
 	glBindVertexArray(vertexArrayID);
 
-	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "./shaders/simpleshader_vertex.glsl", "./shaders/simpleshader_fragments.glsl" );
+	// compile shaders
+	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShaderID, 1, &vertexShader, NULL);
+	glCompileShader(vertexShaderID);
+	
+	GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShaderID, 1, &fragmentShader, NULL);
+	glCompileShader(fragmentShaderID);
+	
+	GLuint programID = glCreateProgram();
+	glAttachShader(programID, fragmentShaderID);
+	glAttachShader(programID, vertexShaderID);
+	glLinkProgram(programID);
+	glUseProgram(programID);
 
 	// Get a handle for our "MVP" uniform
+	GLuint colorID = glGetAttribLocation(programID, "vertexColor");
 	GLuint matrixID = glGetUniformLocation(programID, "MVP");
-	GLuint colorID = glGetUniformLocation(programID, "Color");
 
 	static const GLfloat squareVertexes[] = // 2x2 square
 	{ 
@@ -147,8 +164,7 @@ int main(int argc, char *argv[])
 	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertexes), squareVertexes, GL_STATIC_DRAW);
 	
-	vector<GLfloat>  vBuffer;
-	vector<GLfloat>  wbuffer; // for wireframe view
+	vector<GLfloat> vBuffer;
 
 	// faces
 	for(int mdl=0; mdl<map.models.size(); mdl++)
@@ -161,7 +177,7 @@ int main(int argc, char *argv[])
 			if(map.faces[i].dispinfo!=-1)
 			{
 				// not supported right now
-				// I can't get the logic of it
+				// I can't get the logic of it, would appreciate any help
 				continue;
 			}
 
@@ -196,22 +212,11 @@ int main(int argc, char *argv[])
 	}
 
 	int vBufferSize = vBuffer.size()*sizeof(GLfloat);
-	int wBufferSize = wbuffer.size()*sizeof(GLfloat);
 
 	GLuint mapVertexBuffer;
 	glGenBuffers(1, &mapVertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, vBufferSize, &vBuffer[0], GL_STATIC_DRAW);
-
-	GLuint mapWBuffer;
-	glGenBuffers(1, &mapWBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, mapWBuffer);
-	glBufferData(GL_ARRAY_BUFFER, wBufferSize, &wbuffer[0], GL_STATIC_DRAW);
-
-	// backface culling
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW); 
 
 	do
 	{
@@ -242,7 +247,7 @@ int main(int argc, char *argv[])
 		// Send our transformation and color to the currently bound shader, 
 		// in the "MVP" uniform
 		glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniform4f(colorID, color.x, color.y, color.z, color.w);
+		glVertexAttrib4f(colorID, color.x, color.y, color.z, color.w);
 
 		// faces
 		glEnableVertexAttribArray(0);
@@ -260,22 +265,6 @@ int main(int argc, char *argv[])
 			glDrawArrays(GL_TRIANGLES, 0, vBufferSize/3);
 		glDisableVertexAttribArray(0);
 
-		// wireframe
-		glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, mapWBuffer);
-			
-			glVertexAttribPointer(
-				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-				3,                  // size
-				GL_FLOAT,           // type
-				GL_FALSE,           // normalized?
-				0,                  // stride
-				(void*)0            // array buffer offset
-			);
-
-			glDrawArrays(GL_LINES, 0, wBufferSize/3);
-		glDisableVertexAttribArray(0);	
-
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -285,6 +274,7 @@ int main(int argc, char *argv[])
 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &squareVertexBuffer);
+	glDeleteBuffers(1, &mapVertexBuffer);
 	glDeleteProgram(programID);
 	glDeleteVertexArrays(1, &vertexArrayID);
 
