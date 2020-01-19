@@ -1,12 +1,7 @@
-/*
-	notes:
-		* displacements does not work as expected, having problems with rotation and scale	
-*/
-
 #include <main.h>
 
 template <class T>
-void Map::ReadLump(int id, vector<T> &V)
+void Map::readLump(int id, vector<T> &V)
 {
 	for(int i=0; i<header.lumps[id].filelen/sizeof(T); i++)
 	{
@@ -18,21 +13,21 @@ void Map::ReadLump(int id, vector<T> &V)
 	cout << "> LUMP ID: "<< id << "\tcount: " << V.size() << endl;
 }
 
-void Map::LoadLumps()
+void Map::loadLumps()
 {
 	// Reading lumps
-	ReadLump<dplane_t>(LUMP_PLANES, planes);
-	ReadLump<Vector>(LUMP_VERTEXES, vertexes);
-	ReadLump<dedge_t>(LUMP_EDGES, edges);
-	ReadLump<signed int>(LUMP_SURFEDGES, surfedges);
-	ReadLump<dface_t>(LUMP_FACES,faces);
-	ReadLump<dmodel_t>(LUMP_MODELS,models);
-	ReadLump<texinfo_t>(LUMP_TEXINFO,texinfo);
-	ReadLump<dDispVert>(LUMP_DISP_VERTS,dispverts);
-	ReadLump<ddispinfo_t>(LUMP_DISPINFO,dispinfos);
+	readLump<dplane_t>(LUMP_PLANES, planes);
+	readLump<Vector>(LUMP_VERTEXES, vertexes);
+	readLump<dedge_t>(LUMP_EDGES, edges);
+	readLump<signed int>(LUMP_SURFEDGES, surfedges);
+	readLump<dface_t>(LUMP_FACES,faces);
+	readLump<dmodel_t>(LUMP_MODELS,models);
+	readLump<texinfo_t>(LUMP_TEXINFO,texinfo);
+	readLump<dDispVert>(LUMP_DISP_VERTS,dispverts);
+	readLump<ddispinfo_t>(LUMP_DISPINFO,dispinfos);
 }
 
-void Map::Rescale()
+void Map::rescale()
 {
 	// scaling down the map
 	for(int i=0;i<vertexes.size();i++)
@@ -109,8 +104,8 @@ int main(int argc, char *argv[])
 	cout << "BSP file: " << argv[1] << endl;
 	cout << "BSP version: " << map.header.version << endl;	
 
-	map.LoadLumps();
-	map.Rescale();
+	map.loadLumps();
+	map.rescale();
 
 	// OPENGL
 
@@ -126,18 +121,18 @@ int main(int argc, char *argv[])
 	// Accept fragment if it closer to the camera than the former one
 	glDepthFunc(GL_LESS);
 
-	GLuint VertexArrayID;
-	glGenVertexArrays(1, &VertexArrayID);
-	glBindVertexArray(VertexArrayID);
+	GLuint vertexArrayID;
+	glGenVertexArrays(1, &vertexArrayID);
+	glBindVertexArray(vertexArrayID);
 
 	// Create and compile our GLSL program from the shaders
 	GLuint programID = LoadShaders( "./shaders/simpleshader_vertex.glsl", "./shaders/simpleshader_fragments.glsl" );
 
 	// Get a handle for our "MVP" uniform
-	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-	GLuint ColorID = glGetUniformLocation(programID, "Color");
+	GLuint matrixID = glGetUniformLocation(programID, "MVP");
+	GLuint colorID = glGetUniformLocation(programID, "Color");
 
-	static const GLfloat square_buffer_data[] = // 2x2 square
+	static const GLfloat squareVertexes[] = // 2x2 square
 	{ 
 		-1.0f, -1.0f, 0.0f,
 		1.0f, -1.0f, 0.0f,
@@ -147,12 +142,12 @@ int main(int argc, char *argv[])
 		1.0f, -1.0f, 0.0f,
 	};
 
-	GLuint squarevertexbuffer;
-	glGenBuffers(1, &squarevertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, squarevertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(square_buffer_data), square_buffer_data, GL_STATIC_DRAW);
+	GLuint squareVertexBuffer;
+	glGenBuffers(1, &squareVertexBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertexes), squareVertexes, GL_STATIC_DRAW);
 	
-	vector<GLfloat>  vbuffer;
+	vector<GLfloat>  vBuffer;
 	vector<GLfloat>  wbuffer; // for wireframe view
 
 	// faces
@@ -160,7 +155,7 @@ int main(int argc, char *argv[])
 	{
 		for(int i=map.models[mdl].firstface; i<map.models[mdl].firstface+map.models[mdl].numfaces; i++)
 		{
-			vector<GLfloat> facetris;
+			vector<GLfloat> faceTris;
 
 			// if the face is a displacement face
 			if(map.faces[i].dispinfo!=-1)
@@ -182,36 +177,36 @@ int main(int argc, char *argv[])
 					// first, current-1, current
 					// vertices of this face to triangulate it
 
-					facetris.insert(facetris.end(),facetris.begin(),facetris.begin()+3);
-					facetris.insert(facetris.end(),facetris.end()-6,facetris.end()-3);
+					faceTris.insert(faceTris.end(),faceTris.begin(),faceTris.begin()+3);
+					faceTris.insert(faceTris.end(),faceTris.end()-6,faceTris.end()-3);
 
-					facetris.push_back(map.vertexes[vert].x);
-					facetris.push_back(map.vertexes[vert].y);
-					facetris.push_back(map.vertexes[vert].z);		
+					faceTris.push_back(map.vertexes[vert].x);
+					faceTris.push_back(map.vertexes[vert].y);
+					faceTris.push_back(map.vertexes[vert].z);		
 				}
 				else
 				{
-					facetris.push_back(map.vertexes[vert].x);
-					facetris.push_back(map.vertexes[vert].y);
-					facetris.push_back(map.vertexes[vert].z);
+					faceTris.push_back(map.vertexes[vert].x);
+					faceTris.push_back(map.vertexes[vert].y);
+					faceTris.push_back(map.vertexes[vert].z);
 				}	
 			}
-			vbuffer.insert(vbuffer.end(),facetris.begin(),facetris.end());
+			vBuffer.insert(vBuffer.end(),faceTris.begin(),faceTris.end());
 		}		
 	}
 
-	int vbuffersize = vbuffer.size()*sizeof(GLfloat);
-	int wbuffersize = wbuffer.size()*sizeof(GLfloat);
+	int vBufferSize = vBuffer.size()*sizeof(GLfloat);
+	int wBufferSize = wbuffer.size()*sizeof(GLfloat);
 
-	GLuint mapvertexbuffer;
-	glGenBuffers(1, &mapvertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, mapvertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, vbuffersize, &vbuffer[0], GL_STATIC_DRAW);
+	GLuint mapVertexBuffer;
+	glGenBuffers(1, &mapVertexBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, vBufferSize, &vBuffer[0], GL_STATIC_DRAW);
 
-	GLuint mapwbuffer;
-	glGenBuffers(1, &mapwbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
-	glBufferData(GL_ARRAY_BUFFER, wbuffersize, &wbuffer[0], GL_STATIC_DRAW);
+	GLuint mapWBuffer;
+	glGenBuffers(1, &mapWBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, mapWBuffer);
+	glBufferData(GL_ARRAY_BUFFER, wBufferSize, &wbuffer[0], GL_STATIC_DRAW);
 
 	// backface culling
 	glEnable(GL_CULL_FACE);
@@ -228,30 +223,30 @@ int main(int argc, char *argv[])
 
 		computeMatricesFromInputs();
 
-		glm::mat4 Projection = getProjectionMatrix();
+		glm::mat4 projection = getProjectionMatrix();
 		
 		// Camera matrix
 		int _dist = 50;
-		glm::vec3 campos = glm::vec3(_dist,_dist,_dist);
+		glm::vec3 camPos = glm::vec3(_dist,_dist,_dist);
 		
-		glm::mat4 View = getViewMatrix();
+		glm::mat4 view = getViewMatrix();
 		// Model matrix : an identity matrix (model will be at the origin)
-		glm::mat4 Model      = glm::mat4(1.0f);
-		Model = glm::rotate(Model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
+		glm::mat4 model      = glm::mat4(1.0f);
+		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
 		//Model = glm::lookAt(Model,campos,glm::vec3(0,1,0));
 
 		// Our ModelViewProjection : multiplication of our 3 matrices
-		glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
-		glm::vec4 Color = glm::vec4(1,1,1,1);
+		glm::mat4 MVP        = projection * view * model; // Remember, matrix multiplication is the other way around
+		glm::vec4 color = glm::vec4(1,1,1,1);
 
 		// Send our transformation and color to the currently bound shader, 
 		// in the "MVP" uniform
-		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-		glUniform4f(ColorID, Color.x, Color.y, Color.z, Color.w);
+		glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
+		glUniform4f(colorID, color.x, color.y, color.z, color.w);
 
 		// faces
 		glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, mapvertexbuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
 			
 			glVertexAttribPointer(
 				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
@@ -262,12 +257,12 @@ int main(int argc, char *argv[])
 				(void*)0            // array buffer offset
 			);
 
-			glDrawArrays(GL_TRIANGLES, 0, vbuffersize/3);
+			glDrawArrays(GL_TRIANGLES, 0, vBufferSize/3);
 		glDisableVertexAttribArray(0);
 
 		// wireframe
 		glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, mapWBuffer);
 			
 			glVertexAttribPointer(
 				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
@@ -278,7 +273,7 @@ int main(int argc, char *argv[])
 				(void*)0            // array buffer offset
 			);
 
-			glDrawArrays(GL_LINES, 0, wbuffersize/3);
+			glDrawArrays(GL_LINES, 0, wBufferSize/3);
 		glDisableVertexAttribArray(0);	
 
 		// Swap buffers
@@ -289,9 +284,9 @@ int main(int argc, char *argv[])
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE )!=GLFW_PRESS && glfwWindowShouldClose(window)==0 );
 
 	// Cleanup VBO and shader
-	glDeleteBuffers(1, &squarevertexbuffer);
+	glDeleteBuffers(1, &squareVertexBuffer);
 	glDeleteProgram(programID);
-	glDeleteVertexArrays(1, &VertexArrayID);
+	glDeleteVertexArrays(1, &vertexArrayID);
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();

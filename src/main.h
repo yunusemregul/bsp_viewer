@@ -61,7 +61,7 @@ struct Map{
 	vector <texinfo_t> texinfo;
 
 	template <class T>
-	void ReadLump(int id, vector<T> &V);
-	void LoadLumps();
-	void Rescale();
+	void readLump(int id, vector<T> &V);
+	void loadLumps();
+	void rescale();
 };
