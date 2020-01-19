@@ -1,5 +1,5 @@
 # bsp_viewer
-It consists of my experiences with BSP file format and OpenGL 4, has no goal of releasing something useable for public.
+It consists of my experiences with Source BSP map file format and OpenGL 4, has no goal of releasing something useable for public.
 
 ![sample screenshot](https://i.ibb.co/wRmBnQF/image.png)
 
