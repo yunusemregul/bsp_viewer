@@ -200,24 +200,6 @@ int main(int argc, char *argv[])
 		}		
 	}
 
-	//edges
-	/*for(int i=0; i<map.surfedges.size(); i++)
-	//for(int i=4; i<4+5; i++)
-	{
-		int surfedgefirst = map.surfedges[i];
-		//int surfedgesecond = map.surfedges[i+1];
-		dedge_t first = map.edges[surfedgefirst > 0 ? surfedgefirst : -surfedgefirst];
-		//dedge_t second = map.edges[surfedgesecond > 0 ? surfedgesecond : -surfedgesecond];
-
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 0 : 1]].x);
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 0 : 1]].y);
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 0 : 1]].z);	
-
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 1 : 0]].x);
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 1 : 0]].y);
-		wbuffer.push_back(map.vertexes[first.v[surfedgefirst>0 ? 1 : 0]].z);
-	}*/
-
 	int vbuffersize = vbuffer.size()*sizeof(GLfloat);
 	int wbuffersize = wbuffer.size()*sizeof(GLfloat);
 
@@ -231,19 +213,6 @@ int main(int argc, char *argv[])
 	glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
 	glBufferData(GL_ARRAY_BUFFER, wbuffersize, &wbuffer[0], GL_STATIC_DRAW);
 
-	/*for(int i=0;i<map.faces.size();i++)
-	{
-		if(map.faces[i].numedges==4)
-			continue;
-		cout << "face " << i << " firstedge: " << map.surfedges[map.faces[i].firstedge] << " numedges: " << map.faces[i].numedges << endl;
-		for(int i2=0;i2<map.faces[i].numedges;i2++)
-		{
-			cout << "	surfedge "<< i2 << ": " << map.surfedges[map.faces[i].firstedge+i2] << endl;
-			cout << "		edge verts: " << map.edges[map.surfedges[map.faces[i].firstedge+i2]].v[0] << ", " << map.edges[map.surfedges[map.faces[i].firstedge+i2]].v[1] << endl;
-		}
-		cout << endl;
-	}*/
-
 	// backface culling
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -251,7 +220,6 @@ int main(int argc, char *argv[])
 
 	do
 	{
-
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -267,113 +235,58 @@ int main(int argc, char *argv[])
 		glm::vec3 campos = glm::vec3(_dist,_dist,_dist);
 		
 		glm::mat4 View = getViewMatrix();
+		// Model matrix : an identity matrix (model will be at the origin)
+		glm::mat4 Model      = glm::mat4(1.0f);
+		Model = glm::rotate(Model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
+		//Model = glm::lookAt(Model,campos,glm::vec3(0,1,0));
 
-		// DRAW X-Y-Z LINES
-		/*for(int i=0;i<3;i++)
-		{
-			glm::mat4 Line = glm::mat4(1.0f);
-			glm::vec4 Color;
+		// Our ModelViewProjection : multiplication of our 3 matrices
+		glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
+		glm::vec4 Color = glm::vec4(1,1,1,1);
 
-			switch(i)
-			{
-				case 0: //x red
-				{
-					Color = glm::vec4(1,0,0,1);
-					Line = glm::rotate(Line, glm::radians(90.0f), glm::vec3(1,0,0));
-					Line = glm::scale(Line, glm::vec3(500, .1, 0));
-					break;
-				}
-				case 1: //y green
-				{
-					Color = glm::vec4(0,1,0,1);
-					Line = glm::rotate(Line, glm::radians(90.0f), glm::vec3(0,1,0));
-					Line = glm::scale(Line, glm::vec3(.1, 500, 0));
-					break;
-				}
-				case 2: //z blue
-				{
-					Color = glm::vec4(0,0,1,1);
-					Line = glm::rotate(Line, glm::radians(90.0f), glm::vec3(1,0,0));
-					Line = glm::scale(Line, glm::vec3(.1, 500, 0));
-					break;
-				}
-			}
-			glm::mat4 MVP = Projection*View*Line;
+		// Send our transformation and color to the currently bound shader, 
+		// in the "MVP" uniform
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glUniform4f(ColorID, Color.x, Color.y, Color.z, Color.w);
 
-			// Send our transformation and color to the currently bound shader, 
-			// in the "MVP" uniform
-			glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-			glUniform4f(ColorID, Color.x, Color.y, Color.z, Color.w);
+		// faces
+		glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, mapvertexbuffer);
+			
+			glVertexAttribPointer(
+				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+				3,                  // size
+				GL_FLOAT,           // type
+				GL_FALSE,           // normalized?
+				0,                  // stride
+				(void*)0            // array buffer offset
+			);
 
-			// 1rst attribute buffer : vertices
-			glEnableVertexAttribArray(0);
-				glBindBuffer(GL_ARRAY_BUFFER, squarevertexbuffer);
-				glVertexAttribPointer(
-					0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-					3,                  // size
-					GL_FLOAT,           // type
-					GL_FALSE,           // normalized?
-					0,                  // stride
-					(void*)0            // array buffer offset
-				);
+			glDrawArrays(GL_TRIANGLES, 0, vbuffersize/3);
+		glDisableVertexAttribArray(0);
 
-				// Draw the triangle !
-				glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
-			glDisableVertexAttribArray(0);	
-		}	*/	
-			// Model matrix : an identity matrix (model will be at the origin)
-			glm::mat4 Model      = glm::mat4(1.0f);
-			Model = glm::rotate(Model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
-			//Model = glm::lookAt(Model,campos,glm::vec3(0,1,0));
+		// wireframe
+		glEnableVertexAttribArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
+			
+			glVertexAttribPointer(
+				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+				3,                  // size
+				GL_FLOAT,           // type
+				GL_FALSE,           // normalized?
+				0,                  // stride
+				(void*)0            // array buffer offset
+			);
 
-			// Our ModelViewProjection : multiplication of our 3 matrices
-			glm::mat4 MVP        = Projection * View * Model; // Remember, matrix multiplication is the other way around
-			glm::vec4 Color = glm::vec4(1,1,1,1);
-
-			// Send our transformation and color to the currently bound shader, 
-			// in the "MVP" uniform
-			glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
-			glUniform4f(ColorID, Color.x, Color.y, Color.z, Color.w);
-
-			// faces
-			glEnableVertexAttribArray(0);
-				glBindBuffer(GL_ARRAY_BUFFER, mapvertexbuffer);
-				
-				glVertexAttribPointer(
-					0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-					3,                  // size
-					GL_FLOAT,           // type
-					GL_FALSE,           // normalized?
-					0,                  // stride
-					(void*)0            // array buffer offset
-				);
-
-				glDrawArrays(GL_TRIANGLES, 0, vbuffersize/3);
-			glDisableVertexAttribArray(0);
-
-			// wireframe
-			glEnableVertexAttribArray(0);
-				glBindBuffer(GL_ARRAY_BUFFER, mapwbuffer);
-				
-				glVertexAttribPointer(
-					0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-					3,                  // size
-					GL_FLOAT,           // type
-					GL_FALSE,           // normalized?
-					0,                  // stride
-					(void*)0            // array buffer offset
-				);
-
-				glDrawArrays(GL_LINES, 0, wbuffersize/3);
-			glDisableVertexAttribArray(0);	
+			glDrawArrays(GL_LINES, 0, wbuffersize/3);
+		glDisableVertexAttribArray(0);	
 
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
+	while( glfwGetKey(window, GLFW_KEY_ESCAPE )!=GLFW_PRESS && glfwWindowShouldClose(window)==0 );
 
 	// Cleanup VBO and shader
 	glDeleteBuffers(1, &squarevertexbuffer);
