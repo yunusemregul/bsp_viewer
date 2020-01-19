@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	// BSP part
+	// parsing the bsp
 	map.file.read((char *)&map.header,sizeof(map.header));
 
 	cout << "BSP file: " << argv[1] << endl;
@@ -107,18 +107,16 @@ int main(int argc, char *argv[])
 	map.loadLumps();
 	map.rescale();
 
-	// OPENGL
+	// opengl side
 
-	// Ensure we can capture the escape key being pressed below
+	// capture keys to control camera, quit window etc.
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
-	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	// Enable depth test
+	// depth test
 	glEnable(GL_DEPTH_TEST);
-	// Accept fragment if it closer to the camera than the former one
 	glDepthFunc(GL_LESS);
 
 	// backface culling
@@ -145,7 +143,6 @@ int main(int argc, char *argv[])
 	glLinkProgram(programID);
 	glUseProgram(programID);
 
-	// Get a handle for our "MVP" uniform
 	GLuint colorID = glGetAttribLocation(programID, "vertexColor");
 	GLuint matrixID = glGetUniformLocation(programID, "MVP");
 
@@ -220,22 +217,21 @@ int main(int argc, char *argv[])
 
 	do
 	{
-		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Use our shader
+		// use the shader
 		glUseProgram(programID);
 
 		computeMatricesFromInputs();
 
 		glm::mat4 projection = getProjectionMatrix();
 		
-		// Camera matrix
+		// camera matrix
 		int _dist = 50;
 		glm::vec3 camPos = glm::vec3(_dist,_dist,_dist);
 		
 		glm::mat4 view = getViewMatrix();
-		// Model matrix : an identity matrix (model will be at the origin)
+		// model matrix : an identity matrix (model will be at the origin)
 		glm::mat4 model      = glm::mat4(1.0f);
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
 		//Model = glm::lookAt(Model,campos,glm::vec3(0,1,0));
@@ -244,8 +240,7 @@ int main(int argc, char *argv[])
 		glm::mat4 MVP        = projection * view * model; // Remember, matrix multiplication is the other way around
 		glm::vec4 color = glm::vec4(1,1,1,1);
 
-		// Send our transformation and color to the currently bound shader, 
-		// in the "MVP" uniform
+		// send MVP to the shader
 		glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 		glVertexAttrib4f(colorID, color.x, color.y, color.z, color.w);
 
@@ -265,7 +260,6 @@ int main(int argc, char *argv[])
 			glDrawArrays(GL_TRIANGLES, 0, vBufferSize/3);
 		glDisableVertexAttribArray(0);
 
-		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
