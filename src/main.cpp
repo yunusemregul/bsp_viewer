@@ -15,112 +15,38 @@ void Map::ReadLump(int id, vector<T> &V)
 		file.read((char *)&to_push, sizeof(T));
 		V.push_back(to_push);
 	}
-	cout << ">		count: " << V.size() << endl;
+	cout << "> LUMP ID: "<< id << "\tcount: " << V.size() << endl;
 }
 
 void Map::LoadLumps()
 {
 	// Reading lumps
-	for(int id=0; id < HEADER_LUMPS; id++)
-	{
-		if(header.lumps[id].fileofs==0)
-			continue;
-
-		switch(id)
-		{
-		case(LUMP_PLANES):
-		{
-			cout << ">	LUMP_PLANES" << endl;
-			ReadLump<dplane_t>(id, planes);
-
-			break;
-		}
-		case(LUMP_VERTEXES):
-		{
-			cout << ">	LUMP_VERTEXES" << endl;
-			ReadLump<Vector>(id, vertexes);
-
-			break;
-		}
-		case(LUMP_EDGES):
-		{
-			cout << ">	LUMP_EDGES" << endl;
-			ReadLump<dedge_t>(id, edges);
-
-			break;
-		}
-		case(LUMP_SURFEDGES):
-		{
-			cout << ">	LUMP_SURFEDGES" << endl;
-			ReadLump<signed int>(id, surfedges);
-
-			break;
-		}
-		case(LUMP_FACES):
-		{
-			cout << ">	LUMP_FACES" << endl;
-			ReadLump<dface_t>(id,faces);
-
-			break;		
-		}		
-		case(LUMP_MODELS):
-		{
-			cout << ">	LUMP_MODELS" << endl;
-			ReadLump<dmodel_t>(id,models);
-
-			break;		
-		}
-		case(LUMP_TEXINFO):
-		{
-			cout << ">	LUMP_TEXINFO" << endl;
-			ReadLump<texinfo_t>(id,texinfo);
-
-			break;
-		}
-		case(LUMP_DISP_VERTS):
-		{
-			cout << ">	LUMP_DISP_VERTS" << endl;
-			ReadLump<dDispVert>(id,dispverts);
-
-			break;
-		}
-		case(LUMP_DISPINFO):
-		{
-			cout << ">	LUMP_DISPINFO" << endl;
-			ReadLump<ddispinfo_t>(id,dispinfos);
-			
-			break;		
-		}
-
-		default:
-			break;
-		}
- 	}
+	ReadLump<dplane_t>(LUMP_PLANES, planes);
+	ReadLump<Vector>(LUMP_VERTEXES, vertexes);
+	ReadLump<dedge_t>(LUMP_EDGES, edges);
+	ReadLump<signed int>(LUMP_SURFEDGES, surfedges);
+	ReadLump<dface_t>(LUMP_FACES,faces);
+	ReadLump<dmodel_t>(LUMP_MODELS,models);
+	ReadLump<texinfo_t>(LUMP_TEXINFO,texinfo);
+	ReadLump<dDispVert>(LUMP_DISP_VERTS,dispverts);
+	ReadLump<ddispinfo_t>(LUMP_DISPINFO,dispinfos);
 }
 
 void Map::Rescale()
 {
 	// scaling down the map
 	for(int i=0;i<vertexes.size();i++)
-	{
 		vertexes[i] = vertexes[i]/scale;
-	}
 
 	for(int i=0;i<planes.size();i++)
-	{
 		planes[i].dist /= scale;
 		//planes[i].normal = planes[i].normal/scale; 
-	}
 
 	for(int i=0; i<faces.size(); i++)
-	{
 		faces[i].area /= pow(scale,2);
-	}
 
 	for(int i=0; i<dispinfos.size(); i++)
-	{
 		dispinfos[i].startPosition = dispinfos[i].startPosition / scale;
-	}
 }
 
 int main(int argc, char *argv[])
@@ -161,7 +87,8 @@ int main(int argc, char *argv[])
 
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( 1024, 768, "bsp-viewer", NULL, NULL);
-	if( window == NULL ){
+	if( window == NULL )
+	{
 		cerr << "Failed to create GLFW window!" << endl;
 		return -1;
 	}
@@ -169,7 +96,8 @@ int main(int argc, char *argv[])
 
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
-	if (glewInit() != GLEW_OK) {
+	if (glewInit() != GLEW_OK)
+	{
 		cerr << "Failed to initialize GLEW!" << endl;
 		glfwTerminate();
 		return -1;
@@ -209,7 +137,8 @@ int main(int argc, char *argv[])
 	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
 	GLuint ColorID = glGetUniformLocation(programID, "Color");
 
-	static const GLfloat square_buffer_data[] = { // 2x2 square
+	static const GLfloat square_buffer_data[] = // 2x2 square
+	{ 
 		-1.0f, -1.0f, 0.0f,
 		1.0f, -1.0f, 0.0f,
 		-1.0f,  1.0f, 0.0f,
@@ -236,87 +165,8 @@ int main(int argc, char *argv[])
 			// if the face is a displacement face
 			if(map.faces[i].dispinfo!=-1)
 			{
-				dplane_t plane = map.planes[map.faces[i].planenum];
-
-				//cout << plane.normal.x << " " << plane.normal.y << " " << plane.normal.z << endl;
-
-				ddispinfo_t dinfo = map.dispinfos[map.faces[i].dispinfo];
-				
-				// surfedges array
-				int *surfedges = &map.surfedges[map.faces[i].firstedge];
-
-				float xlen;
-				float ylen;
-
-				// ind = 0, x stable
-				// ind = 1, y stable
-				for(int ind=0;ind<2;ind++)
-				{
-					for(int ind2=0;ind2<2;ind2++)
-					{
-						Vector v = map.vertexes[map.edges[abs(surfedges[ind])].v[ind2]];
-
-						if(ind==0)
-						{
-							if(ind2==0)
-							{
-								ylen = v.y;
-							}
-							else
-							{
-								ylen = abs(v.y-ylen);
-							}
-						}
-						else
-						{
-							if(ind2==0)
-							{
-								xlen = v.x;
-							}
-							else
-							{
-								xlen = abs(v.x-xlen);
-							}	
-						}
-					}
-				}
-
-				float len = sqrt(map.faces[i].area);
-				xlen = xlen==0 ? len : xlen;
-				ylen = ylen==0 ? len : ylen;
-				
-				int num = (pow(2,dinfo.power)+1);
-				
-				// y?
-				for(int j=0; j<num; j++)
-				{
-					// x?
-					for(int k=0; k<num; k++)
-					{
-						dDispVert vert = map.dispverts[dinfo.DispVertStart+j*num+k];
-
-						char buf[32];
-						vert.vec.tostring(buf);
-
-						Vector start(k*xlen/num, j*ylen/num, 0);
-						Vector end(k*xlen/num+(vert.dist+1)/map.scale*vert.vec.x, j*ylen/num+(vert.dist+1)/map.scale*vert.vec.y,(vert.dist+1)/map.scale*vert.vec.z);
-						start = end-Vector(0,0,.05);
-
-						start = start + dinfo.startPosition;
-						end = end + dinfo.startPosition;
-
-						//start = start * plane.normal;
-						//end = end & plane.normal;
-
-						wbuffer.push_back(start.x);
-						wbuffer.push_back(start.y);
-						wbuffer.push_back(start.z);
-
-						wbuffer.push_back(end.x);
-						wbuffer.push_back(end.y);
-						wbuffer.push_back(end.z);
-					}
-				}
+				// not supported right now
+				// I can't get the logic of it
 				continue;
 			}
 
@@ -399,7 +249,8 @@ int main(int argc, char *argv[])
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CW); 
 
-	do{
+	do
+	{
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
