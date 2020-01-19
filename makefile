@@ -1,9 +1,9 @@
 CC = g++
 CFLAGS = -O2
 LIBS = -lGL -lglfw -lGLEW -lglut
-INCLUDES = -I./
+INCLUDES = -I./src/
 
 all: build
 
-build: main.cpp
-	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) -o bsp-viewer main.cpp
+build: src/main.cpp
+	$(CC) $(CFLAGS) $(LIBS) $(INCLUDES) -o bsp-viewer src/main.cpp
