@@ -145,21 +145,6 @@ int main(int argc, char *argv[])
 
 	GLuint colorID = glGetAttribLocation(programID, "vertexColor");
 	GLuint matrixID = glGetUniformLocation(programID, "MVP");
-
-	static const GLfloat squareVertexes[] = // 2x2 square
-	{ 
-		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		-1.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-	};
-
-	GLuint squareVertexBuffer;
-	glGenBuffers(1, &squareVertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, squareVertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(squareVertexes), squareVertexes, GL_STATIC_DRAW);
 	
 	vector<GLfloat> vBuffer;
 
@@ -174,7 +159,7 @@ int main(int argc, char *argv[])
 			if(map.faces[i].dispinfo!=-1)
 			{
 				// not supported right now
-				// I can't get the logic of it, would appreciate any help
+				// I can't get the logic, would appreciate any help
 				continue;
 			}
 
@@ -266,13 +251,11 @@ int main(int argc, char *argv[])
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE )!=GLFW_PRESS && glfwWindowShouldClose(window)==0 );
 
-	// Cleanup VBO and shader
-	glDeleteBuffers(1, &squareVertexBuffer);
+	// cleanup
 	glDeleteBuffers(1, &mapVertexBuffer);
-	glDeleteProgram(programID);
 	glDeleteVertexArrays(1, &vertexArrayID);
+	glDeleteProgram(programID);
 
-	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 
 	map.file.close();
