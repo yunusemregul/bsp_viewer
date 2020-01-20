@@ -1,3 +1,8 @@
+/*
+	TO DO:
+		seperate transparent surfaces into another buffer, draw it after opaques drawed
+*/
+
 #include <main.h>
 
 template <class T>
@@ -22,8 +27,15 @@ void Map::loadLumps()
 	readLump<signed int>(LUMP_SURFEDGES, surfedges);
 	readLump<dface_t>(LUMP_FACES,faces);
 	readLump<dmodel_t>(LUMP_MODELS,models);
+
 	readLump<texinfo_t>(LUMP_TEXINFO,texinfo);
 	readLump<dtexdata_t>(LUMP_TEXDATA,texdata);
+	readLump<int>(LUMP_TEXDATA_STRING_TABLE,texdata_string_table);
+	readLump<char>(LUMP_TEXDATA_STRING_DATA,texdata_string_data);
+	// tolower all string data
+	for(int i=0; i<texdata_string_data.size(); i++)
+		texdata_string_data[i] = tolower(texdata_string_data[i]);
+	
 	readLump<dDispVert>(LUMP_DISP_VERTS,dispverts);
 	readLump<ddispinfo_t>(LUMP_DISPINFO,dispinfos);
 }
@@ -136,6 +148,10 @@ int main(int argc, char *argv[])
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+	// blending for transparency
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	// depth test
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -168,8 +184,14 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
-			texinfo_t faceTexInfo = map.texinfo[map.faces[i].texinfo];
-			Vector faceColor = map.texdata[faceTexInfo.texdata].reflectivity;
+			texinfo_t texinfo = map.texinfo[map.faces[i].texinfo];
+			dtexdata_t texdata = map.texdata[texinfo.texdata];
+			char *texname = &map.texdata_string_data[map.texdata_string_table[texdata.nameStringTableID]];
+			Vector color = texdata.reflectivity;
+			float alpha = 1.0f;
+			
+			if (strcmp(texname, "tools/toolstrigger")==0)
+				alpha = 0.2f;
 
 			for(int i2=0; i2<map.faces[i].numedges;i2++)
 			{
@@ -195,9 +217,10 @@ int main(int argc, char *argv[])
 			vertexBuffer.insert(vertexBuffer.end(),faceTris.begin(),faceTris.end());
 			for(int j=0; j<faceTris.size()/3; j++)
 			{
-				colorBuffer.push_back(faceColor.x);
-				colorBuffer.push_back(faceColor.y);
-				colorBuffer.push_back(faceColor.z);
+				colorBuffer.push_back(color.x);
+				colorBuffer.push_back(color.y);
+				colorBuffer.push_back(color.z);
+				colorBuffer.push_back(alpha);
 			}
 		}		
 	}
@@ -247,7 +270,7 @@ int main(int argc, char *argv[])
 		glVertexAttribPointer(vPosition_modelspaceID, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, mapColorBuffer);
-		glVertexAttribPointer(vColorID, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glVertexAttribPointer(vColorID, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		
 		glEnableVertexAttribArray(vPosition_modelspaceID);
 		glEnableVertexAttribArray(vColorID);

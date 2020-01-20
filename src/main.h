@@ -66,6 +66,8 @@ struct Map{
 
 	vector <texinfo_t> texinfo;
 	vector <dtexdata_t> texdata;
+	vector <int> texdata_string_table;
+	vector <char> texdata_string_data;
 
 	template <class T>
 	void readLump(int id, vector<T> &V);
@@ -78,8 +80,8 @@ const char *vertexShader = R"(
 
 uniform mat4 MVP;
 in vec3 vPosition_modelspace;
-in vec3 vColor;
-out vec3 color;
+in vec4 vColor;
+out vec4 color;
 
 void main()
 {
@@ -90,10 +92,10 @@ void main()
 
 const char *fragmentShader = R"(
 #version 330 core
-in vec3 color;
+in vec4 color;
 
 void main()
 { 
-	gl_FragColor = vec4(color,1);
+	gl_FragColor = color;
 }
 )";
