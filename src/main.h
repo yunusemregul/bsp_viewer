@@ -47,7 +47,7 @@ using std::ios;
 
 // The struct that will hold the Map data
 struct Map{
-	float scale = 100;
+	float scale = 25;
 
 	fstream file;
 
@@ -65,6 +65,7 @@ struct Map{
 	vector <ddispinfo_t> dispinfos;
 
 	vector <texinfo_t> texinfo;
+	vector <dtexdata_t> texdata;
 
 	template <class T>
 	void readLump(int id, vector<T> &V);
@@ -74,26 +75,25 @@ struct Map{
 
 const char *vertexShader = R"(
 #version 330 core
-layout(location = 0) in vec3 vertexPosition_modelspace;
-
-in vec4 vertexColor;
-out vec4 color;
 
 uniform mat4 MVP;
+in vec3 vPosition_modelspace;
+in vec3 vColor;
+out vec3 color;
 
 void main()
 {
-	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
-	color = vertexColor;
+	gl_Position =  MVP * vec4(vPosition_modelspace,1);
+	color = vColor;
 }
 )";
 
 const char *fragmentShader = R"(
 #version 330 core
-in vec4 color;
+in vec3 color;
 
 void main()
 { 
-	gl_FragColor = color;
+	gl_FragColor = vec4(color,1);
 }
 )";

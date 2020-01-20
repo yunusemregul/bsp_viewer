@@ -135,6 +135,14 @@ struct texinfo_t
 	int	texdata;		// Pointer to texture name, size, etc.
 };
 
+struct dtexdata_t
+{
+	Vector	reflectivity;		// RGB reflectivity
+	int	nameStringTableID;	// index into TexdataStringTable
+	int	width, height;		// source image
+	int	view_width, view_height;
+};
+
 struct dDispVert
 {
 	Vector	vec;	// Vector field defining displacement volume.

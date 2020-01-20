@@ -23,6 +23,7 @@ void Map::loadLumps()
 	readLump<dface_t>(LUMP_FACES,faces);
 	readLump<dmodel_t>(LUMP_MODELS,models);
 	readLump<texinfo_t>(LUMP_TEXINFO,texinfo);
+	readLump<dtexdata_t>(LUMP_TEXDATA,texdata);
 	readLump<dDispVert>(LUMP_DISP_VERTS,dispverts);
 	readLump<ddispinfo_t>(LUMP_DISPINFO,dispinfos);
 }
@@ -75,10 +76,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	// window setup
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //We don't want the old OpenGL 
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow(1024, 768, "bsp_viewer", NULL, NULL);
@@ -109,25 +111,6 @@ int main(int argc, char *argv[])
 
 	// opengl side
 
-	// capture keys to control camera, quit window etc.
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-	// depth test
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-
-	// backface culling
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW); 
-
-	GLuint vertexArrayID;
-	glGenVertexArrays(1, &vertexArrayID);
-	glBindVertexArray(vertexArrayID);
-
 	// compile shaders
 	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShaderID, 1, &vertexShader, NULL);
@@ -143,10 +126,32 @@ int main(int argc, char *argv[])
 	glLinkProgram(programID);
 	glUseProgram(programID);
 
-	GLuint colorID = glGetAttribLocation(programID, "vertexColor");
 	GLuint matrixID = glGetUniformLocation(programID, "MVP");
-	
-	vector<GLfloat> vBuffer;
+	GLuint vPosition_modelspaceID = glGetAttribLocation(programID, "vPosition_modelspace");
+	GLuint vColorID = glGetAttribLocation(programID, "vColor");	
+
+	// capture keys to control camera, quit window etc.
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	// depth test
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	// backface culling
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW); 
+
+	// VAOs
+	GLuint vertexArrayID;
+	glGenVertexArrays(1, &vertexArrayID);
+	glBindVertexArray(vertexArrayID);
+
+	vector<GLfloat> vertexBuffer;
+	vector<GLfloat> colorBuffer;
 
 	// faces
 	for(int mdl=0; mdl<map.models.size(); mdl++)
@@ -159,9 +164,12 @@ int main(int argc, char *argv[])
 			if(map.faces[i].dispinfo!=-1)
 			{
 				// not supported right now
-				// I can't get the logic, would appreciate any help
+				// I can't get the logic, would appreciate any help that describes it
 				continue;
 			}
+
+			texinfo_t faceTexInfo = map.texinfo[map.faces[i].texinfo];
+			Vector faceColor = map.texdata[faceTexInfo.texdata].reflectivity;
 
 			for(int i2=0; i2<map.faces[i].numedges;i2++)
 			{
@@ -169,6 +177,7 @@ int main(int argc, char *argv[])
 
 				int vert;
 				vert = map.edges[abs(edge)].v[edge<0 ? 1 : 0];
+				
 				if(i2>2)
 				{
 					// insert 
@@ -177,28 +186,34 @@ int main(int argc, char *argv[])
 
 					faceTris.insert(faceTris.end(),faceTris.begin(),faceTris.begin()+3);
 					faceTris.insert(faceTris.end(),faceTris.end()-6,faceTris.end()-3);
-
-					faceTris.push_back(map.vertexes[vert].x);
-					faceTris.push_back(map.vertexes[vert].y);
-					faceTris.push_back(map.vertexes[vert].z);		
 				}
-				else
-				{
-					faceTris.push_back(map.vertexes[vert].x);
-					faceTris.push_back(map.vertexes[vert].y);
-					faceTris.push_back(map.vertexes[vert].z);
-				}	
+
+				faceTris.push_back(map.vertexes[vert].x);
+				faceTris.push_back(map.vertexes[vert].y);
+				faceTris.push_back(map.vertexes[vert].z);	
 			}
-			vBuffer.insert(vBuffer.end(),faceTris.begin(),faceTris.end());
+			vertexBuffer.insert(vertexBuffer.end(),faceTris.begin(),faceTris.end());
+			for(int j=0; j<faceTris.size()/3; j++)
+			{
+				colorBuffer.push_back(faceColor.x);
+				colorBuffer.push_back(faceColor.y);
+				colorBuffer.push_back(faceColor.z);
+			}
 		}		
 	}
 
-	int vBufferSize = vBuffer.size()*sizeof(GLfloat);
+	int vBufferSize = vertexBuffer.size()*sizeof(GLfloat);
+	int cBufferSize = colorBuffer.size()*sizeof(GLfloat);
 
 	GLuint mapVertexBuffer;
 	glGenBuffers(1, &mapVertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, vBufferSize, &vBuffer[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vBufferSize, &vertexBuffer[0], GL_STATIC_DRAW);
+
+	GLuint mapColorBuffer;
+	glGenBuffers(2, &mapColorBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, mapColorBuffer);
+	glBufferData(GL_ARRAY_BUFFER, cBufferSize, &colorBuffer[0], GL_STATIC_DRAW);	
 
 	do
 	{
@@ -217,42 +232,37 @@ int main(int argc, char *argv[])
 		
 		glm::mat4 view = getViewMatrix();
 		// model matrix : an identity matrix (model will be at the origin)
-		glm::mat4 model      = glm::mat4(1.0f);
+		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0,0.0,0.0));
-		//Model = glm::lookAt(Model,campos,glm::vec3(0,1,0));
 
-		// Our ModelViewProjection : multiplication of our 3 matrices
-		glm::mat4 MVP        = projection * view * model; // Remember, matrix multiplication is the other way around
-		glm::vec4 color = glm::vec4(1,1,1,1);
+		// ModelViewProjection
+		glm::mat4 MVP = projection * view * model;
+		glm::vec3 color = glm::vec3(1,1,1);
 
 		// send MVP to the shader
 		glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
-		glVertexAttrib4f(colorID, color.x, color.y, color.z, color.w);
 
 		// faces
-		glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
-			
-			glVertexAttribPointer(
-				0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-				3,                  // size
-				GL_FLOAT,           // type
-				GL_FALSE,           // normalized?
-				0,                  // stride
-				(void*)0            // array buffer offset
-			);
+		glBindBuffer(GL_ARRAY_BUFFER, mapVertexBuffer);
+		glVertexAttribPointer(vPosition_modelspaceID, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-			glDrawArrays(GL_TRIANGLES, 0, vBufferSize/3);
-		glDisableVertexAttribArray(0);
-
+		glBindBuffer(GL_ARRAY_BUFFER, mapColorBuffer);
+		glVertexAttribPointer(vColorID, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		
+		glEnableVertexAttribArray(vPosition_modelspaceID);
+		glEnableVertexAttribArray(vColorID);
+		
+		glDrawArrays(GL_TRIANGLES, 0, vBufferSize/3);
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE )!=GLFW_PRESS && glfwWindowShouldClose(window)==0 );
+	while(glfwGetKey(window, GLFW_KEY_ESCAPE )!=GLFW_PRESS && glfwWindowShouldClose(window)==0);
 
 	// cleanup
 	glDeleteBuffers(1, &mapVertexBuffer);
+	glDeleteBuffers(1, &mapColorBuffer);
 	glDeleteVertexArrays(1, &vertexArrayID);
 	glDeleteProgram(programID);
 
