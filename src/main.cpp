@@ -32,7 +32,7 @@ void Map::loadLumps()
 	readLump<dtexdata_t>(LUMP_TEXDATA,texdata);
 	readLump<int>(LUMP_TEXDATA_STRING_TABLE,texdata_string_table);
 	readLump<char>(LUMP_TEXDATA_STRING_DATA,texdata_string_data);
-	// tolower all string data
+	// tolower all string data for case insensitive comparing
 	for(int i=0; i<texdata_string_data.size(); i++)
 		texdata_string_data[i] = tolower(texdata_string_data[i]);
 	
@@ -193,6 +193,9 @@ int main(int argc, char *argv[])
 			if (strcmp(texname, "tools/toolstrigger")==0)
 				alpha = 0.2f;
 
+			if (texinfo.flags & 0x10) // is texture transparent
+				alpha = 0.2f;
+
 			for(int i2=0; i2<map.faces[i].numedges;i2++)
 			{
 				int edge = map.surfedges[map.faces[i].firstedge+i2];
@@ -234,10 +237,11 @@ int main(int argc, char *argv[])
 	glBufferData(GL_ARRAY_BUFFER, vBufferSize, &vertexBuffer[0], GL_STATIC_DRAW);
 
 	GLuint mapColorBuffer;
-	glGenBuffers(2, &mapColorBuffer);
+	glGenBuffers(1, &mapColorBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, mapColorBuffer);
 	glBufferData(GL_ARRAY_BUFFER, cBufferSize, &colorBuffer[0], GL_STATIC_DRAW);	
 
+	glfwSetScrollCallback(window, scroll_callback);
 	do
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

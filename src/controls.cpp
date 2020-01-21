@@ -23,12 +23,22 @@ glm::mat4 getProjectionMatrix()
 }
 
 glm::vec3 position = glm::vec3(0, 0, 5); 
+glm::vec3 direction;
 float horizontalAngle = 3.14f;
 float verticalAngle = 0.0f;
 float initialFoV = 75.0f;
 
 float speed = 25.0f; // 3 units / second
 float mouseSpeed = 0.005f;
+
+// hammer's scroll movement replicate
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	if(yoffset<=-1)
+		position += glm::vec3(direction.x*-10,direction.y*-10,direction.z*-10);
+	else if(yoffset>=1)
+		position += glm::vec3(direction.x*10,direction.y*10,direction.z*10);
+}
 
 void computeMatricesFromInputs(){
 	// disable input if we dont have focus
@@ -58,7 +68,7 @@ void computeMatricesFromInputs(){
 	verticalAngle = glm::clamp<float>(verticalAngle,-1.75,1.75);
 
 	// Direction : Spherical coordinates to Cartesian coordinates conversion
-	glm::vec3 direction(
+	direction = glm::vec3(
 		cos(verticalAngle) * sin(horizontalAngle), 
 		sin(verticalAngle),
 		cos(verticalAngle) * cos(horizontalAngle)
@@ -82,6 +92,10 @@ void computeMatricesFromInputs(){
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL)==GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL)==GLFW_PRESS)
 		curSpeed = speed / 4;	
 
+	// move upwards by pressing space
+	if (glfwGetKey(window, GLFW_KEY_SPACE)==GLFW_PRESS)
+		position += vec3(0,1,0) * deltaTime * curSpeed;
+
 	// Move forward
 	if (glfwGetKey(window, GLFW_KEY_UP)==GLFW_PRESS || glfwGetKey(window, GLFW_KEY_W)==GLFW_PRESS)
 		position += direction * deltaTime * curSpeed;
@@ -100,7 +114,7 @@ void computeMatricesFromInputs(){
 
 	float FoV = initialFoV;// - 5 * glfwGetMouseWheel(); // Now GLFW 3 requires setting up a callback for this. It's a bit too complicated for this beginner's tutorial, so it's disabled instead.
 
-	// Projection matrix : 45� Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+	// Projection matrix : Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
 	ProjectionMatrix = glm::perspective(glm::radians(FoV), 4.0f / 3.0f, 0.1f, 1000.0f);
 	
 	// Camera matrix
